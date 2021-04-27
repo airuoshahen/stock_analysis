@@ -47,7 +47,44 @@ from pdfminer.pdfpage import PDFTextExtractionNotAllowed
 
 findStrList = ['生产量']
 filePath = "D:\\Hansson\\others\\stock\\jiangyou\\qianhe\\2020.pdf"
+findTextList = ['重大变化情况的说明']
+OutputLines = 8
+OutputBytes = 32
 
+# find all the str in the text and output the OutputLines which is behind the found str 
+# if there is not enough lines behind the found str it output several bytes which are behind the found str
+def findStrInText(text, findStr):
+    ret = False
+    findTextIndex = 0
+    while True:
+        findTextIndex = text.find(findStr, findTextIndex)
+        if findTextIndex != -1:
+            ret = True
+
+            # get the number of "\n" in the left text
+            findEndTotalCount = text.count("\n", findTextIndex)
+
+            if findEndTotalCount >= OutputLines:
+                findEndCount = 0
+                findTextEndIndex = findTextIndex
+                while findEndCount < OutputLines:
+                    findTextEndIndex = text.find("\n", findTextEndIndex)
+                    findEndCount += 1
+                    findTextEndIndex += 1
+                print(text[findTextIndex:findTextEndIndex])
+            else:
+                if len(text) > (findTextIndex + OutputBytes):
+                    findTextEndIndex = findTextIndex + OutputBytes
+                else:
+                    findTextEndIndex = len(text)
+                print(text[findTextIndex:findTextEndIndex])
+
+            findTextIndex = findTextEndIndex
+        else:
+            break
+    return ret
+
+# find str in the table and output the str by using the format of table
 def findStrInTable(targetTable, findStr):
     findFlag = False
     ret = False
@@ -56,9 +93,13 @@ def findStrInTable(targetTable, findStr):
             findFlag = True
             break
     if findFlag == True:
-        for x in targetTable:
-            print(x, end=" ")
-        print(" ")
+        for line in targetTable:
+            for item in line:
+                itemString = str(item)
+                if "\n" in itemString:
+                    itemString = itemString.replace("\n", "")
+                print(itemString + "\t", end=" ")
+            print("")
         findFlag = False
         ret = True
     return ret
@@ -76,5 +117,12 @@ while i < len(pdf.pages):
     for j in range(0, len(tables)):
         for findstr in findStrList:
             if findStrInTable(tables[j], str(findstr)) == True:
-                print("find page nume is ", i)
+                print("find table page nume is ", i)
+
+    # find the text list of the i page
+    text = index_page.extract_text()
+    for findText in findTextList:
+        if findStrInText(text, findText) == True:
+            print("find text page number is ", i)
+
     i += 1
